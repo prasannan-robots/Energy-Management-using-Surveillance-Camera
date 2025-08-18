@@ -1,0 +1,32 @@
+S.NO,Reference,Qty,Value,DNP,Exclude from BOM,Exclude from Board,Footprint,Datasheet
+1,1.2V1,1,XC6206P122MR-G,,,,Package_TO_SOT_SMD:SOT-23-3,
+2,2.8V1,1,XC6206P282MR,,,,Package_TO_SOT_SMD:SOT-23-3,
+3,"C1,C9,C10,C11,C14",5,100pF,,,,Capacitor_SMD:C_0603_1608Metric,
+4,C2,1,SMD CAP 0.1uF,,,,Capacitor_SMD:C_0603_1608Metric,
+5,"C5,C6,C7,C8,C16",5,10uF,,,,Capacitor_SMD:C_0603_1608Metric,~
+6,C13,1,100nF,,,,Capacitor_SMD:C_0603_1608Metric,~
+7,C15,1,0.1uF,,,,Capacitor_SMD:C_0603_1608Metric,~
+8,"D1,D2,D3,D4,D5,D6,D7,D8",8,LED,,,,LED_THT:LED_D5.0mm_IRGrey,~
+9,J1,1,MSD-11-A,,,,LIB_MSD-11-A:MSD11A,https://www.sameskydevices.com/product/resource/msd-11-a.pdf
+10,J2,1,Header2.54mm 1*8P,,,,Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical,
+11,LED2,1,OSY50402C1C,,,,LED_THT:LED_D5.0mm,
+12,LS1,1,Speaker,,,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,~
+13,MK1,1,ICS-43434,,,,Sensor_Audio:InvenSense_ICS-43434-6_3.5x2.65mm,https://www.invensense.com/wp-content/uploads/2016/02/DS-000069-ICS-43434-v1.2.pdf
+14,Q1,1,2N2219,,,,Package_TO_SOT_THT:TO-46-3_Window,http://www.onsemi.com/pub_link/Collateral/2N2219-D.PDF
+15,"R1,R4,R5,R6,R7,R8,R9,R14",8,100,,,,Resistor_SMD:R_0402_1005Metric,~
+16,R3,1,10K,,,,Resistor_SMD:R_2010_5025Metric,
+17,R10,1,4.7K,,,,Resistor_SMD:R_0402_1005Metric,
+18,R11,1,200,,,,Resistor_SMD:R_0402_1005Metric,
+19,"R12,R13",2,0,,,,Resistor_SMD:R_0402_1005Metric,~
+20,R15,1,1K,,,,Resistor_SMD:R_0402_1005Metric,
+21,"R16,R17,R18,R19",4,47K,,,,Resistor_SMD:R_0402_1005Metric,
+22,R20,1,NC,,,,Resistor_SMD:R_0402_1005Metric,
+23,"R31,R32",2,2k,,,,Resistor_SMD:R_0603_1608Metric,~
+24,R33,1,100k,,,,Resistor_SMD:R_0402_1005Metric,~
+25,R34,1,633k,,,,Resistor_SMD:R_0201_0603Metric,~
+26,R35,1,20k,,,,Resistor_SMD:R_0603_1608Metric,~
+27,R38,1,LDR03,,,,OptoDevice:R_LDR_5.1x4.3mm_P3.4mm_Vertical,http://www.elektronica-componenten.nl/WebRoot/StoreNL/Shops/61422969/54F1/BA0C/C664/31B9/2173/C0A8/2AB9/2AEF/LDR03IMP.pdf
+28,U1,1,ESP32-S3-WROOM-1,,,,RF_Module:ESP32-S3-WROOM-1,https://www.espressif.com/sites/default/files/documentation/esp32-s3-wroom-1_wroom-1u_datasheet_en.pdf
+29,U2,1,Key,,,,Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical,
+30,U5,1,OV2640 FPC 24P,,,,SFV24R-3STBE1HLF:SFV24R3STBE1HLF,
+31,U6,1,MAX98357A,,,,Package_DFN_QFN:TQFN-16-1EP_3x3mm_P0.5mm_EP1.23x1.23mm,https://www.analog.com/media/en/technical-documentation/data-sheets/MAX98357A-MAX98357B.pdf
