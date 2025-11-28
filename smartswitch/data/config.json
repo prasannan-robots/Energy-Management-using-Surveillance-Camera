@@ -1,0 +1,21 @@
+{
+  "wifi": {
+    "ssid": "EnergyManagement",
+    "password": "123456789@E"
+  },
+  "cctv": {
+    "ip": "192.168.137.206",
+    "port": 8080,
+    "path": "/",
+    "_comment": "MJPEG stream - typically ESP32-CAM on port 81 or IP camera"
+  },
+  "detection": {
+    "threshold": 0.5,
+    "globalTimeout": 5
+  },
+  "system": {
+    "relayActiveHigh": true,
+    "enableWatchdog": true,
+    "watchdogTimeout": 60
+  }
+}

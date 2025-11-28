@@ -1,0 +1,24 @@
+{
+  "zones": [
+    {
+      "id": 1,
+      "name": "Desk 1",
+      "x": 10,
+      "y": 10,
+      "width": 140,
+      "height": 220,
+      "relayPins": [12],
+      "timeout": 5
+    },
+    {
+      "id": 2,
+      "name": "Desk 2",
+      "x": 170,
+      "y": 10,
+      "width": 140,
+      "height": 220,
+      "relayPins": [13],
+      "timeout": 5
+    }
+  ]
+}

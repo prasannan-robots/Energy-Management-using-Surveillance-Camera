@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Smart Zone Switch</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .setup-banner {
+            background: #fbbf24;
+            color: #92400e;
+            padding: 1rem 2rem;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+
+        .setup-banner.show {
+            display: block;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: #ef4444;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .panel h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+
+        #canvas-container {
+            position: relative;
+            background: #000;
+            border-radius: 4px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+        }
+
+        #mjpeg-stream {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            z-index: 0;
+        }
+
+        #video-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            cursor: crosshair;
+            z-index: 1;
+        }
+
+        .canvas-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            z-index: 2;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .tab {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .zone-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .zone-item {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 4px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s;
+        }
+
+        .zone-item:hover {
+            background: #f3f4f6;
+            transform: translateX(4px);
+        }
+
+        .zone-item.active {
+            border-left-color: #4ade80;
+            background: #ecfdf5;
+        }
+
+        .zone-info {
+            flex: 1;
+        }
+
+        .zone-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .zone-details {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .zone-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        button {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: #4ade80;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #22c55e;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .relay-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .relay-card {
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+            position: relative;
+            text-align: center;
+        }
+
+        .relay-status {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 0.5rem;
+            border-radius: 50%;
+            background: #d1d5db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .relay-status.active {
+            background: #4ade80;
+            color: white;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.5);
+        }
+
+        .gpio-status {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .gpio-high {
+            background: #fca5a5;
+            color: #7f1d1d;
+        }
+
+        .gpio-low {
+            background: #d1d5db;
+            color: #374151;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .emergency-stop {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-top: 1rem;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .drawing-controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 0.5rem;
+            z-index: 2;
+        }
+
+        .drawing-controls button {
+            padding: 0.5rem;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .slider-container input[type="range"] {
+            flex: 1;
+        }
+
+        .slider-value {
+            min-width: 60px;
+            text-align: center;
+            font-weight: bold;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🏠 ESP32 Smart Zone Switch</h1>
+        <div class="status-bar">
+            <div class="status-item">
+                <div class="status-dot" id="wifi-status"></div>
+                <span>WiFi: <span id="wifi-text">Connected</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="stream-status"></div>
+                <span>CCTV: <span id="stream-text">Connected</span></span>
+            </div>
+            <div class="status-item">
+                <div class="status-dot" id="relay-status"></div>
+                <span>Relays: <span id="relay-count">0</span> Active</span>
+            </div>
+            <div class="status-item">
+                <span style="font-weight: bold;">GPIOs: <span id="gpio-summary" style="color: #10b981;">All LOW</span></span>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <!-- Left Panel: Video Feed and Zone Drawing -->
+        <div>
+            <div class="panel">
+                <h2>📹 Live Feed & Zone Editor</h2>
+                <div id="canvas-container">
+                    <img id="mjpeg-stream" src="" alt="Camera stream" style="display:none;">
+                    <canvas id="video-canvas" width="640" height="480"></canvas>
+                    <div class="canvas-overlay">
+                        <div>FPS: <span id="fps">0</span></div>
+                        <div>Detections: <span id="detection-count">0</span></div>
+                    </div>
+                    <div class="drawing-controls">
+                        <button id="add-zone-btn" title="Draw New Zone">➕ Draw Zone</button>
+                        <button id="clear-drawing-btn" title="Clear Selection">🗑️</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="panel" style="margin-top: 1rem;">
+                <h2>ℹ️ Instructions</h2>
+                <p><strong>Drawing Zones:</strong></p>
+                <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+                    <li>Click "Draw Zone" button above</li>
+                    <li>Click and drag on the video to create a rectangle</li>
+                    <li>Configure zone name and relay pins in the modal</li>
+                    <li>Save to activate the zone</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Right Panel: Tabs for Zones, Relays, Settings -->
+        <div>
+            <div class="panel">
+                <div class="tabs">
+                    <button class="tab active" data-tab="zones">Zones</button>
+                    <button class="tab" data-tab="relays">Relays</button>
+                    <button class="tab" data-tab="settings">Settings</button>
+                    <button class="tab" data-tab="stats">Statistics</button>
+                </div>
+
+                <!-- Zones Tab -->
+                <div class="tab-content active" id="zones-tab">
+                    <div class="zone-list" id="zone-list">
+                        <!-- Zones will be dynamically added here -->
+                    </div>
+                    <button class="btn-primary" style="width: 100%; margin-top: 1rem;" onclick="openAddZoneModal()">
+                        ➕ Add New Zone
+                    </button>
+                </div>
+
+                <!-- Relays Tab -->
+                <div class="tab-content" id="relays-tab">
+                    <div class="relay-grid" id="relay-grid">
+                        <!-- Relays will be dynamically added here -->
+                    </div>
+                    <button class="btn-danger emergency-stop" onclick="emergencyStop()">
+                        🛑 EMERGENCY STOP ALL RELAYS
+                    </button>
+                </div>
+
+                <!-- Settings Tab -->
+                <div class="tab-content" id="settings-tab">
+                    <div class="form-group">
+                        <label>CCTV IP Address</label>
+                        <input type="text" id="cctv-ip" placeholder="192.168.4.100">
+                    </div>
+                    <div class="form-group">
+                        <label>CCTV Port</label>
+                        <input type="number" id="cctv-port" value="8080">
+                    </div>
+                    <div class="form-group">
+                        <label>Stream Path (leave empty for port 8080 cameras)</label>
+                        <input type="text" id="stream-path" placeholder="/stream">
+                        <small style="color: #666; font-size: 0.85rem;">Examples: "" (empty), "/stream", "/video"</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Detection Threshold</label>
+                        <div class="slider-container">
+                            <input type="range" id="detection-threshold" min="0.3" max="0.9" step="0.05" value="0.5">
+                            <span class="slider-value" id="threshold-value">0.50</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Global Timeout (seconds)</label>
+                        <div class="slider-container">
+                            <input type="range" id="global-timeout" min="1" max="30" step="1" value="5">
+                            <span class="slider-value" id="timeout-value">5s</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="saveSettings()" style="width: 100%;">💾 Save Settings</button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                        <button class="btn-secondary" onclick="testConnection()">
+                            🔌 Test Connection
+                        </button>
+                        <button class="btn-success" onclick="startCamera()" id="start-camera-btn">
+                            ▶️ Start Camera
+                        </button>
+                    </div>
+                    <button class="btn-danger" onclick="stopCamera()" id="stop-camera-btn" style="width: 100%; margin-top: 0.5rem; display: none;">
+                        ⏹️ Stop Camera
+                    </button>
+                    <div id="camera-status" style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 4px; display: none;"></div>
+                </div>
+
+                <!-- Statistics Tab -->
+                <div class="tab-content" id="stats-tab">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-detections">0</div>
+                            <div class="stat-label">Total Detections</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-zones">0</div>
+                            <div class="stat-label">Active Zones</div>
+                        </div>
+                    </div>
+                    <h3 style="margin: 1rem 0;">Zone Statistics</h3>
+                    <div id="zone-stats">
+                        <!-- Zone stats will be added here -->
+                    </div>
+                    <button class="btn-secondary" onclick="resetStatistics()" style="width: 100%; margin-top: 1rem;">
+                        🔄 Reset Statistics
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Info Panel -->
+            <div class="panel" style="margin-top: 1rem;">
+                <h2>⚙️ System Info</h2>
+                <div style="font-size: 0.9rem;">
+                    <p><strong>IP:</strong> <span id="sys-ip">-</span></p>
+                    <p><strong>Free Heap:</strong> <span id="sys-heap">-</span></p>
+                    <p><strong>WiFi Signal:</strong> <span id="sys-wifi">-</span> dBm</p>
+                    <p><strong>Model:</strong> <span id="sys-model">-</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Zone Modal -->
+    <div class="modal" id="zone-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configure Zone</h2>
+                <button class="close-modal" onclick="closeZoneModal()">×</button>
+            </div>
+            <div class="form-group">
+                <label>Zone Name</label>
+                <input type="text" id="zone-name" placeholder="e.g., Desk 1">
+            </div>
+            <div class="form-group">
+                <label>Relay GPIO Pins (comma-separated)</label>
+                <input type="text" id="zone-relays" placeholder="e.g., 12,13">
+            </div>
+            <div class="form-group">
+                <label>Timeout (seconds)</label>
+                <input type="number" id="zone-timeout" value="5" min="1" max="30">
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-primary" onclick="saveZone()" style="flex: 1;">💾 Save Zone</button>
+                <button class="btn-secondary" onclick="closeZoneModal()" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
