@@ -568,10 +568,16 @@ String WebServerManager::serializeSystemInfo() {
   doc["wifiRSSI"] = WiFi.RSSI();
   doc["ipAddress"] = WiFi.localIP().toString();
   
-  char modelInfo[128];
-  detector->getModelInfo(modelInfo, sizeof(modelInfo));
-  doc["modelInfo"] = modelInfo;
-  doc["lastInferenceTime"] = detector->getLastInferenceTime();
+  // Motion detector is used instead of TFLite
+  if (detector != nullptr) {
+    char modelInfo[128];
+    detector->getModelInfo(modelInfo, sizeof(modelInfo));
+    doc["modelInfo"] = modelInfo;
+    doc["lastInferenceTime"] = detector->getLastInferenceTime();
+  } else {
+    doc["modelInfo"] = "Simple Motion Detection";
+    doc["lastInferenceTime"] = 0;
+  }
   
   String json;
   serializeJson(doc, json);
