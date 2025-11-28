@@ -102,7 +102,7 @@
             aspect-ratio: 4/3;
         }
 
-        #mjpeg-stream {
+        #camera-snapshot {
             position: absolute;
             top: 0;
             left: 0;
@@ -481,7 +481,7 @@
             <div class="panel">
                 <h2>📹 Live Feed & Zone Editor</h2>
                 <div id="canvas-container">
-                    <img id="mjpeg-stream" src="" alt="Camera stream" style="display:none;">
+                    <img id="camera-snapshot" src="" alt="Camera snapshot" style="display:none;">
                     <canvas id="video-canvas" width="640" height="480"></canvas>
                     <div class="canvas-overlay">
                         <div>FPS: <span id="fps">0</span></div>
@@ -564,6 +564,12 @@
                             <input type="range" id="global-timeout" min="1" max="30" step="1" value="5">
                             <span class="slider-value" id="timeout-value">5s</span>
                         </div>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem;">
+                            <input type="checkbox" id="auto-relay-control" checked>
+                            <span>Enable Auto Relay Control (motion triggers relays)</span>
+                        </label>
                     </div>
                     <button class="btn-primary" onclick="saveSettings()" style="width: 100%;">💾 Save Settings</button>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">

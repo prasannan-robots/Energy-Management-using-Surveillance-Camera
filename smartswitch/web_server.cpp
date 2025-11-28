@@ -200,6 +200,11 @@ void WebServerManager::setupRoutes() {
     handleCameraStatus(request);
   });
   
+  // API: Get camera snapshot
+  server->on("/api/camera/snapshot", HTTP_GET, [this](AsyncWebServerRequest* request) {
+    handleCameraSnapshot(request);
+  });
+  
   // 404 handler
   server->onNotFound([](AsyncWebServerRequest* request) {
     request->send(404, "text/plain", "Not found");
@@ -238,6 +243,9 @@ void WebServerManager::handleSaveConfig(AsyncWebServerRequest* request, uint8_t*
   }
   if (doc.containsKey("globalTimeout")) {
     config->globalTimeout = doc["globalTimeout"];
+  }
+  if (doc.containsKey("autoRelayControl")) {
+    config->autoRelayControl = doc["autoRelayControl"];
   }
   
   // Save to SPIFFS
@@ -476,6 +484,7 @@ String WebServerManager::serializeConfig() {
   doc["detectionThreshold"] = config->detectionThreshold;
   doc["globalTimeout"] = config->globalTimeout;
   doc["relayActiveHigh"] = config->relayActiveHigh;
+  doc["autoRelayControl"] = config->autoRelayControl;
   
   String json;
   serializeJson(doc, json);

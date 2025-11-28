@@ -141,11 +141,23 @@ void loop() {
     return;
   }
   
+  // Track camera connection state
+  static bool wasConnected = false;
+  bool isConnected = mjpegStream.isConnected();
+  
   // Only process frames if camera is connected
-  if (!mjpegStream.isConnected()) {
+  if (!isConnected) {
     // Camera not connected - just wait
+    wasConnected = false;
     delay(500);
     return;
+  }
+  
+  // Update lastFrameTime when camera first connects to prevent immediate timeout
+  if (isConnected && !wasConnected) {
+    Serial.println("Camera connection established - resetting watchdog timer");
+    lastFrameTime = millis();
+    wasConnected = true;
   }
   
   // Watchdog timer: disable all relays if no frame received for too long
@@ -183,8 +195,15 @@ void loop() {
     
     if (true) {  // Always process frame
       
-      // Update relay states based on detections and zones
-      zoneManager.update(detections, width, height);
+      // Update relay states based on detections and zones (if auto control enabled)
+      if (globalConfig.autoRelayControl) {
+        zoneManager.update(detections, width, height);
+      } else {
+        // Just log detections without controlling relays
+        if (detections.size() > 0) {
+          Serial.printf("👁 Motion detected but auto-relay control DISABLED\n");
+        }
+      }
       
       // Send frame to web UI clients (via WebSocket)
       webServer.broadcastFrame(frameBuffer, frameSize, detections);

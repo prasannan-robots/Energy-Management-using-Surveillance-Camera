@@ -92,28 +92,34 @@ bool MJPEGStream::connectToStream() {
   String contentType = http.header("Content-Type");
   Serial.printf("Content-Type: %s\n", contentType.c_str());
   
-  // Extract boundary from content type
-  // Example: multipart/x-mixed-replace; boundary=myboundary
-  int boundaryIndex = contentType.indexOf("boundary=");
-  if (boundaryIndex == -1) {
-    Serial.println("ERROR: No boundary found in Content-Type");
-    http.end();
-    return false;
+  // Check if it's a multipart stream or simple JPEG
+  if (contentType.indexOf("multipart") >= 0) {
+    // Standard MJPEG stream with boundaries
+    int boundaryIndex = contentType.indexOf("boundary=");
+    if (boundaryIndex == -1) {
+      Serial.println("⚠ Multipart stream but no boundary found");
+      Serial.println("  Trying fallback mode...");
+      strcpy(boundary, "--myboundary");  // Try common default
+    } else {
+      String boundaryStr = contentType.substring(boundaryIndex + 9);
+      boundaryStr.trim();
+      snprintf(boundary, BOUNDARY_MAX_LENGTH, "--%s", boundaryStr.c_str());
+      Serial.printf("Boundary: %s\n", boundary);
+    }
+    boundaryFound = true;
+  } else {
+    // Non-standard stream (might be single JPEG or streaming without boundaries)
+    Serial.println("⚠ Not a multipart stream - using single-frame mode");
+    Serial.println("  This camera serves individual JPEG frames");
+    boundaryFound = false;  // Will read entire response as one frame
+    strcpy(boundary, "");
   }
   
-  String boundaryStr = contentType.substring(boundaryIndex + 9);
-  boundaryStr.trim();
-  
-  // Store boundary with leading dashes
-  snprintf(boundary, BOUNDARY_MAX_LENGTH, "--%s", boundaryStr.c_str());
-  Serial.printf("Boundary: %s\n", boundary);
-  
   connected = true;
-  boundaryFound = true;
   bufferPos = 0;
   firstFrameTime = millis();
   
-  Serial.println("✓ Connected to MJPEG stream");
+  Serial.println("✓ Connected to camera stream");
   return true;
 }
 
@@ -127,8 +133,62 @@ bool MJPEGStream::fetchFrame(uint8_t** frameData, size_t* frameSize) {
 }
 
 bool MJPEGStream::extractFrame(uint8_t** frameData, size_t* frameSize) {
-  // Read data until we find a complete JPEG frame
+  // Handle non-multipart streams (single JPEG per request)
+  if (!boundaryFound) {
+    // Read all available data as a single JPEG frame
+    int readAttempts = 0;
+    while (readMoreData() && readAttempts < 50) {
+      // Keep reading until no more data (max 50 attempts to prevent overflow)
+      delay(10);
+      readAttempts++;
+    }
+    
+    // Check if we have a complete JPEG (starts with FFD8, ends with FFD9)
+    if (bufferPos > 100) {
+      // Find JPEG start marker (0xFF 0xD8)
+      int jpegStart = -1;
+      for (size_t i = 0; i < bufferPos - 1; i++) {
+        if (buffer[i] == 0xFF && buffer[i+1] == 0xD8) {
+          jpegStart = i;
+          break;
+        }
+      }
+      
+      // Find JPEG end marker (0xFF 0xD9)
+      int jpegEnd = -1;
+      for (size_t i = bufferPos - 2; i > 0; i--) {
+        if (buffer[i] == 0xFF && buffer[i+1] == 0xD9) {
+          jpegEnd = i + 2;
+          break;
+        }
+      }
+      
+      if (jpegStart >= 0 && jpegEnd > jpegStart) {
+        int jpegSize = jpegEnd - jpegStart;
+        
+        *frameData = (uint8_t*)malloc(jpegSize);
+        if (*frameData) {
+          memcpy(*frameData, &buffer[jpegStart], jpegSize);
+          *frameSize = jpegSize;
+          
+          bufferPos = 0;  // Reset buffer for next frame
+          frameCount++;
+          lastFrameTime = millis();
+          
+          // Reconnect for next frame (single-shot mode)
+          disconnect();
+          delay(50);  // Small delay before reconnecting
+          
+          return true;
+        }
+      }
+    }
+    
+    bufferPos = 0;
+    return false;
+  }
   
+  // Standard MJPEG with boundaries
   while (true) {
     // Read more data if buffer is running low
     if (bufferPos < 1024) {

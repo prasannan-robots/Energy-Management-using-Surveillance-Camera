@@ -44,6 +44,7 @@ public:
   void handleStartCamera(AsyncWebServerRequest* request);
   void handleStopCamera(AsyncWebServerRequest* request);
   void handleCameraStatus(AsyncWebServerRequest* request);
+  void handleCameraSnapshot(AsyncWebServerRequest* request);
   
 private:
   AsyncWebServer* server;

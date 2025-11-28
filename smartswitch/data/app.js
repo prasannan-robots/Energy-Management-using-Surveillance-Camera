@@ -16,7 +16,7 @@ let detections = [];
 // Canvas and context
 const canvas = document.getElementById('video-canvas');
 const ctx = canvas.getContext('2d');
-const mjpegStream = document.getElementById('mjpeg-stream');
+const cameraSnapshot = document.getElementById('camera-snapshot');
 
 // Zone colors
 const zoneColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Load initial data
     loadConfig().then(() => {
-        // Load MJPEG stream after config is loaded
-        updateMJPEGStream();
+        // Load camera snapshot after config is loaded
+        updateCameraSnapshot();
     });
     loadZones();
     loadRelays();
@@ -323,6 +323,7 @@ async function loadConfig() {
         document.getElementById('threshold-value').textContent = (config.detectionThreshold || 0.5).toFixed(2);
         document.getElementById('global-timeout').value = config.globalTimeout || 5;
         document.getElementById('timeout-value').textContent = `${config.globalTimeout || 5}s`;
+        document.getElementById('auto-relay-control').checked = config.autoRelayControl !== false;
         
         console.log('Configuration loaded');
     } catch (error) {
@@ -330,25 +331,52 @@ async function loadConfig() {
     }
 }
 
-// Update MJPEG stream URL based on config
-function updateMJPEGStream() {
+// Update camera snapshot (refreshes every minute)
+let snapshotInterval;
+
+function updateCameraSnapshot() {
+    const cameraSnapshot = document.getElementById('camera-snapshot');
+    
+    // Clear existing interval
+    if (snapshotInterval) {
+        clearInterval(snapshotInterval);
+    }
+    
     if (config.cctvIP && config.cctvPort) {
-        const streamUrl = `http://${config.cctvIP}:${config.cctvPort}${config.streamPath || ''}`;
-        console.log('Loading MJPEG stream from:', streamUrl);
-        
-        mjpegStream.src = streamUrl;
-        mjpegStream.style.display = 'block';
-        
-        mjpegStream.onerror = () => {
-            console.error('Failed to load MJPEG stream');
-            mjpegStream.style.display = 'none';
+        // Function to fetch and display snapshot
+        const fetchSnapshot = async () => {
+            try {
+                const timestamp = new Date().getTime();
+                const snapshotUrl = `/api/camera/snapshot?t=${timestamp}`;
+                console.log('Fetching camera snapshot...');
+                
+                // Test if the image loads
+                const testImg = new Image();
+                testImg.onload = () => {
+                    cameraSnapshot.src = snapshotUrl;
+                    cameraSnapshot.style.display = 'block';
+                    console.log('Camera snapshot loaded successfully');
+                };
+                testImg.onerror = () => {
+                    console.error('Failed to load camera snapshot');
+                    cameraSnapshot.style.display = 'none';
+                };
+                testImg.src = snapshotUrl;
+                
+            } catch (error) {
+                console.error('Error fetching camera snapshot:', error);
+                cameraSnapshot.style.display = 'none';
+            }
         };
         
-        mjpegStream.onload = () => {
-            console.log('MJPEG stream loaded successfully');
-        };
+        // Fetch initial snapshot
+        fetchSnapshot();
+        
+        // Set up interval to refresh every minute (60000 ms)
+        snapshotInterval = setInterval(fetchSnapshot, 60000);
+        
     } else {
-        mjpegStream.style.display = 'none';
+        cameraSnapshot.style.display = 'none';
         console.log('No camera configured');
     }
 }
@@ -361,6 +389,7 @@ async function saveSettings() {
         config.streamPath = document.getElementById('stream-path').value;
         config.detectionThreshold = parseFloat(document.getElementById('detection-threshold').value);
         config.globalTimeout = parseInt(document.getElementById('global-timeout').value);
+        config.autoRelayControl = document.getElementById('auto-relay-control').checked;
         
         const response = await fetch('/api/config', {
             method: 'POST',
@@ -370,8 +399,8 @@ async function saveSettings() {
         
         if (response.ok) {
             alert('✓ Settings saved successfully!');
-            // Update the MJPEG stream with new settings
-            updateMJPEGStream();
+            // Update camera snapshot with new settings
+            updateCameraSnapshot();
         } else {
             alert('✗ Failed to save settings');
         }
@@ -656,8 +685,8 @@ async function startCamera() {
             document.getElementById('start-camera-btn').style.display = 'none';
             document.getElementById('stop-camera-btn').style.display = 'block';
             
-            // Reload MJPEG stream
-            updateMJPEGStream();
+            // Reload camera snapshot
+            updateCameraSnapshot();
             
             setTimeout(() => { statusDiv.style.display = 'none'; }, 3000);
         } else {
@@ -723,11 +752,11 @@ async function checkCameraStatus() {
         if (data.connected) {
             document.getElementById('start-camera-btn').style.display = 'none';
             document.getElementById('stop-camera-btn').style.display = 'block';
-            updateMJPEGStream();
+            updateCameraSnapshot();
         } else {
             document.getElementById('start-camera-btn').style.display = 'block';
             document.getElementById('stop-camera-btn').style.display = 'none';
-            mjpegStream.style.display = 'none';
+            cameraSnapshot.style.display = 'none';
         }
     } catch (error) {
         console.error('Failed to check camera status:', error);

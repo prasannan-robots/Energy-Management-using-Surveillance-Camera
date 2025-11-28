@@ -59,6 +59,7 @@ struct Config {
   bool relayActiveHigh;      // true = HIGH activates relay, false = LOW activates
   bool enableWatchdog;       // Enable watchdog timer
   int watchdogTimeout;       // Watchdog timeout in seconds
+  bool autoRelayControl;     // Enable automatic relay control on motion
 };
 
 // Function declarations

@@ -55,6 +55,7 @@ bool loadConfigFromSPIFFS(Config* config) {
   config->relayActiveHigh = doc["system"]["relayActiveHigh"] | true;
   config->enableWatchdog = doc["system"]["enableWatchdog"] | true;
   config->watchdogTimeout = doc["system"]["watchdogTimeout"] | 60;
+  config->autoRelayControl = doc["system"]["autoRelayControl"] | true;
   
   Serial.println("✓ Configuration loaded from SPIFFS");
   
@@ -86,6 +87,7 @@ bool saveConfigToSPIFFS(const Config* config) {
   doc["system"]["relayActiveHigh"] = config->relayActiveHigh;
   doc["system"]["enableWatchdog"] = config->enableWatchdog;
   doc["system"]["watchdogTimeout"] = config->watchdogTimeout;
+  doc["system"]["autoRelayControl"] = config->autoRelayControl;
   
   // Write to file
   File file = LittleFS.open(CONFIG_FILE, "w");
@@ -230,6 +232,7 @@ void setDefaultConfig(Config* config) {
   config->relayActiveHigh = true;  // GPIOs will be HIGH when person detected
   config->enableWatchdog = true;
   config->watchdogTimeout = 60;
+  config->autoRelayControl = true;  // Enable automatic relay control on motion
   
   // Clear zones
   config->zones.clear();
